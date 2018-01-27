@@ -3,6 +3,8 @@ import org.apache.pdfbox.text.PDFTextStripper
 
 import java.util.regex.Matcher
 
+import static java.math.BigDecimal.ZERO
+
 class Globals {
     // TODO Set debug via command line argument
     static boolean DEBUG = false
@@ -15,11 +17,11 @@ final PDDocument pdfDocument = PDDocument.load(pdfFile)
 final PDFTextStripper pdfTextStripper = new PDFTextStripper()
 final String pdfText = pdfTextStripper.getText(pdfDocument)
 
-String customerServiceCenterPhoneNumber
+String customerServiceCenterPhoneNumber = '877-878-8883'
 
 BigDecimal previousBalance
 BigDecimal expectedBalance
-BigDecimal totalDiscrepancyAmount = BigDecimal.ZERO
+BigDecimal totalDiscrepancyAmount = ZERO
 
 pdfText.eachLine { final String line ->
     debug "\nline = $line"
@@ -55,9 +57,9 @@ pdfText.eachLine { final String line ->
             println ''
             80.times { print '-' }
             println ''
-            println "*** INVALID LINE: $line"
-            println "*** Balance should be $expectedBalance"
-            println "*** Off by $discrepancyAmount"
+            println "INVALID LINE: $line"
+            println "Balance should be \$$expectedBalance"
+            println "Off by \$$discrepancyAmount"
             80.times { print '-' }
             println ''
         }
@@ -68,12 +70,12 @@ pdfText.eachLine { final String line ->
     }
 }
 
-if (totalDiscrepancyAmount > BigDecimal.ZERO) {
+if (totalDiscrepancyAmount > ZERO) {
     println ''
     80.times { print '=' }
     println ''
-    println "*** TOTAL DISCREPANCY AMOUNT: \$$totalDiscrepancyAmount"
-    println "*** Call $customerServiceCenterPhoneNumber"
+    println "TOTAL DISCREPANCY AMOUNT: \$$totalDiscrepancyAmount"
+    println "Call $customerServiceCenterPhoneNumber"
     80.times { print '=' }
     println ''
 }
