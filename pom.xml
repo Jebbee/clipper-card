@@ -3,8 +3,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.jj.dharma</groupId>
-    <artifactId>dharma-calendar</artifactId>
+    <groupId>org.jj.clipper</groupId>
+    <artifactId>clipper-card</artifactId>
     <version>0.1</version>
 
     <dependencies>
@@ -58,8 +58,8 @@
                 <executions>
                     <execution>
                         <configuration>
-                            <filename>${project.artifactId}.jar</filename>
-                            <mainClass>DharmaCalendarMain</mainClass>
+                            <filename>${project.artifactId}-${project.version}-onejar.jar</filename>
+                            <mainClass>ClipperCardMain</mainClass>
                             <attachToBuild>true</attachToBuild>
                         </configuration>
                         <goals>
