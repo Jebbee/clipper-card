@@ -4,7 +4,6 @@ final CliBuilder cli = new CliBuilder(usage: "ClipperCard.groovy -file <pdf>")
 cli.with {
     h longOpt: 'help', 'Show usage'
     f longOpt: 'file', args: 1, argName: 'pdf', 'Clipper transaction history PDF file; Defaults to "~/Downloads/ridehistory.pdf"'
-    d longOpt: 'debugEnabled', 'Turn on debugging'
 }
 
 final OptionAccessor options = cli.parse(args)
@@ -19,7 +18,7 @@ if (!options) {
 final File pdfFile = getPdfFile(options)
 ensureCanReadFileElseExit(pdfFile)
 
-final ClipperCardParser clipperCardParser = new ClipperCardParser(options.debug as boolean)
+final ClipperCardParser clipperCardParser = new ClipperCardParser()
 clipperCardParser.parsePdfFile(pdfFile)
 
 private static File getPdfFile(final OptionAccessor options) {
