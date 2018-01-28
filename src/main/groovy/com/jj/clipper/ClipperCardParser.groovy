@@ -1,5 +1,7 @@
 package com.jj.clipper
 
+import com.jj.clipper.card.CardNumberLineParser
+import com.jj.clipper.card.CardNumberLineParserImpl
 import com.jj.clipper.contact.ContactInfoLineParser
 import com.jj.clipper.contact.ContactInfoLineParserImpl
 import com.jj.clipper.transaction.TransactionLine
@@ -14,6 +16,7 @@ class ClipperCardParser {
 
     // TODO Spring inject delegate services
     private final PdfToTextService pdfToTextService = new PdfToTextServiceImpl()
+    private final CardNumberLineParser cardNumberLineParser = new CardNumberLineParserImpl()
     private final TransactionLineParser transactionLineParser = new TransactionLineParserImpl()
     private final ContactInfoLineParser contactInfoLineParser = new ContactInfoLineParserImpl()
 
@@ -27,7 +30,9 @@ class ClipperCardParser {
         final ClipperCardParserContext context = new ClipperCardParserContext()
 
         pdfText.eachLine { final String line ->
-            if (transactionLineParser.isTransactionLine(line)) {
+            if (cardNumberLineParser.isCardNumberLine(line)) {
+                context.cardNumber = cardNumberLineParser.parse(line)
+            } else if (transactionLineParser.isTransactionLine(line)) {
                 final TransactionLine transactionLine = transactionLineParser.parse(line)
 
                 if (isFirstTransactionLine(context.previousBalance)) {
@@ -63,6 +68,7 @@ class ClipperCardParser {
             println ''
             println "TOTAL DISCREPANCY AMOUNT: \$${context.totalDiscrepancyAmount}"
             println "Call $customerServiceCenterPhoneNumber"
+            println "Card number: ${context.cardNumber}"
             80.times { print '=' }
             println ''
         }
