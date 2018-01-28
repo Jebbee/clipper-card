@@ -1,19 +1,21 @@
 package com.jj.clipper
 
+import com.jj.clipper.contact.ContactInfoLineParser
+import com.jj.clipper.contact.ContactInfoLineParserImpl
+import com.jj.clipper.transaction.TransactionLine
 import com.jj.clipper.transaction.TransactionLineParser
 import com.jj.clipper.transaction.TransactionLineParserImpl
 import com.jj.pdf.PdfToTextService
 import com.jj.pdf.PdfToTextServiceImpl
 
-import java.util.regex.Matcher
-
 import static java.math.BigDecimal.ZERO
 
 class ClipperCardParser {
 
-    // TODO Spring inject services
+    // TODO Spring inject delegate services
     private final PdfToTextService pdfToTextService = new PdfToTextServiceImpl()
     private final TransactionLineParser transactionLineParser = new TransactionLineParserImpl()
+    private final ContactInfoLineParser contactInfoLineParser = new ContactInfoLineParserImpl()
 
     // TODO Print Clipper card number (for reference when calling in)
 
@@ -25,10 +27,33 @@ class ClipperCardParser {
         final ClipperCardParserContext context = new ClipperCardParserContext()
 
         pdfText.eachLine { final String line ->
-            transactionLineParser.parseLine(line, context)
+            if (transactionLineParser.isTransactionLine(line)) {
+                final TransactionLine transactionLine = transactionLineParser.parse(line)
 
-            if (isCustomerServiceCenterPhoneNumberLine(line)) {
-                customerServiceCenterPhoneNumber = getCustomerServiceCenterPhoneNumber(line)
+                if (isFirstTransactionLine(context.previousBalance)) {
+                    context.previousBalance = transactionLine.balance
+                    context.expectedBalance = transactionLine.balance
+                } else {
+                    context.expectedBalance = context.previousBalance + transactionLine.adjustmentAmount
+                }
+
+                if (transactionLine.balance != context.expectedBalance) {
+                    final BigDecimal discrepancyAmount = context.expectedBalance - transactionLine.balance
+                    context.totalDiscrepancyAmount += discrepancyAmount
+
+                    println ''
+                    80.times { print '-' }
+                    println ''
+                    println "INVALID LINE: $line"
+                    println "Balance should be \$${context.expectedBalance}"
+                    println "Off by \$$discrepancyAmount"
+                    80.times { print '-' }
+                    println ''
+                }
+
+                context.previousBalance = transactionLine.balance
+            } else if (contactInfoLineParser.isContactInfoLine(line)) {
+                customerServiceCenterPhoneNumber = contactInfoLineParser.parse(line)
             }
         }
 
@@ -43,18 +68,8 @@ class ClipperCardParser {
         }
     }
 
-    private static boolean isCustomerServiceCenterPhoneNumberLine(final String line) {
-        return line ==~ /.*Customer Service Center at \d{3}-\d{3}-\d{4}.*/
-    }
-
-    private static String getCustomerServiceCenterPhoneNumber(final String line) {
-        final Matcher matcher = (line =~ /.*Customer Service Center at (\d{3}-\d{3}-\d{4}).*/)
-//    assert matcher.hasGroup()
-//    assert 1L == matcher.size()
-
-        final List<String> listOfGroups = matcher[0] as List<String>
-
-        return listOfGroups[1]
+    private static boolean isFirstTransactionLine(final BigDecimal previousBalance) {
+        return !previousBalance
     }
 
 }
