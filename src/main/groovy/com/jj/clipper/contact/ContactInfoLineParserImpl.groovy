@@ -2,12 +2,14 @@ package com.jj.clipper.contact
 
 import java.util.regex.Matcher
 
+// TODO Abstract the commonalities of the various parsers (common interface)
 class ContactInfoLineParserImpl implements ContactInfoLineParser {
 
     boolean isContactInfoLine(final String line) {
         return line ==~ /.*Customer Service Center at \d{3}-\d{3}-\d{4}.*/
     }
 
+    // TODO Share the data extraction via Matcher with other parser classes (extract to shared utility)
     String parse(final String line) {
         assert isContactInfoLine(line)
 

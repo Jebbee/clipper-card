@@ -20,12 +20,8 @@ class ClipperCardParser {
     private final TransactionLineParser transactionLineParser = new TransactionLineParserImpl()
     private final ContactInfoLineParser contactInfoLineParser = new ContactInfoLineParserImpl()
 
-    // TODO Print Clipper card number (for reference when calling in)
-
     void parsePdfFile(final File pdfFile) {
         final String pdfText = pdfToTextService.toText(pdfFile)
-
-        String customerServiceCenterPhoneNumber = '877-878-8883'
 
         final ClipperCardParserContext context = new ClipperCardParserContext()
 
@@ -46,6 +42,8 @@ class ClipperCardParser {
                     final BigDecimal discrepancyAmount = context.expectedBalance - transactionLine.balance
                     context.totalDiscrepancyAmount += discrepancyAmount
 
+                    // TODO Add page number
+
                     println ''
                     80.times { print '-' }
                     println ''
@@ -58,17 +56,19 @@ class ClipperCardParser {
 
                 context.previousBalance = transactionLine.balance
             } else if (contactInfoLineParser.isContactInfoLine(line)) {
-                customerServiceCenterPhoneNumber = contactInfoLineParser.parse(line)
+                context.customerServicePhoneNumber = contactInfoLineParser.parse(line)
             }
         }
 
         if (context.totalDiscrepancyAmount > ZERO) {
+            // TODO Add report date
+
             println ''
             80.times { print '=' }
             println ''
             println "TOTAL DISCREPANCY AMOUNT: \$${context.totalDiscrepancyAmount}"
-            println "Call $customerServiceCenterPhoneNumber"
-            println "Card number: ${context.cardNumber}"
+            println "Call ${context.customerServicePhoneNumber}"
+            println "Card Number: ${context.cardNumber}"
             80.times { print '=' }
             println ''
         }
