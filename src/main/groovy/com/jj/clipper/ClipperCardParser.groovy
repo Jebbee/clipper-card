@@ -9,9 +9,11 @@ import com.jj.clipper.transaction.TransactionLineParser
 import com.jj.clipper.transaction.TransactionLineParserImpl
 import com.jj.pdf.PdfToTextService
 import com.jj.pdf.PdfToTextServiceImpl
+import groovy.util.logging.Slf4j
 
 import static java.math.BigDecimal.ZERO
 
+@Slf4j
 class ClipperCardParser {
 
     // TODO Spring inject delegate services
