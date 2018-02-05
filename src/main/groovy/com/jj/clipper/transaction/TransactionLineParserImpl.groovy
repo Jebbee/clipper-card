@@ -2,6 +2,19 @@ package com.jj.clipper.transaction
 
 import java.util.regex.Matcher
 
+/**
+ * Parses lines that appear as follows for debit transactions:
+ *
+ * <pre>
+ * 11/27/2017 07:03 AM Dual-tag entry transaction, maximum fare deducted (purse debit) Zone 3 (GGT) 18S Clipper Cash 6.60 58.04
+ * </pre>
+ *
+ * And for a credit transactions:
+ *
+ * <pre>
+ * 11/27/2017 07:57 AM Dual-tag exit transaction, fare adjustment (purse rebate) Zone 1 (GGT) 18S Clipper Cash 1.00 59.04
+ * </pre>
+ */
 class TransactionLineParserImpl implements TransactionLineParser {
 
     boolean isTransactionLine(final String line) {
@@ -33,8 +46,8 @@ class TransactionLineParserImpl implements TransactionLineParser {
         return transactionLine
     }
 
-    private static BigDecimal getBalance(final String transactionLine) {
-        return (transactionLine =~ /\d+\.\d{2}$/)[0] as BigDecimal
+    private static BigDecimal getBalance(final String line) {
+        return (line =~ /\d+\.\d{2}$/)[0] as BigDecimal
     }
 
     private static BigDecimal getAdjustmentAmountWithProperSign(String line) {
@@ -47,9 +60,9 @@ class TransactionLineParserImpl implements TransactionLineParser {
         return adjustmentAmount
     }
 
-    private static BigDecimal getAdjustmentAmount(final String transactionLine) {
+    private static BigDecimal getAdjustmentAmount(final String line) {
         // With grouping we get a multidimensional array
-        final Matcher matcher = (transactionLine =~ /(\d+\.\d{2}) (\d+\.\d{2})$/)
+        final Matcher matcher = (line =~ /(\d+\.\d{2}) (\d+\.\d{2})$/)
         assert matcher.hasGroup()
         assert 1L == matcher.size()
 
@@ -67,8 +80,8 @@ class TransactionLineParserImpl implements TransactionLineParser {
         return listOfGroups[1] as BigDecimal
     }
 
-    private static boolean isDebitLine(final String transactionLine) {
-        return transactionLine ==~ /.+ \(purse debit\) .+/
+    private static boolean isDebitLine(final String line) {
+        return line ==~ /.+ \(purse debit\) .+/
     }
 
 }

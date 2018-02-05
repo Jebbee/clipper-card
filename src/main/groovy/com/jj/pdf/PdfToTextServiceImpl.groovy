@@ -8,8 +8,11 @@ class PdfToTextServiceImpl implements PdfToTextService {
     String toText(final File pdfFile) {
         final PDDocument pdfDocument = PDDocument.load(pdfFile)
         final PDFTextStripper pdfTextStripper = new PDFTextStripper()
+        final String pdfText = pdfTextStripper.getText(pdfDocument)
 
-        return pdfTextStripper.getText(pdfDocument)
+        pdfDocument.close()
+
+        return pdfText
     }
 
 }

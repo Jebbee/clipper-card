@@ -7,6 +7,8 @@ import com.jj.clipper.contact.ContactInfoLineParserImpl
 import com.jj.clipper.transaction.TransactionLine
 import com.jj.clipper.transaction.TransactionLineParser
 import com.jj.clipper.transaction.TransactionLineParserImpl
+import com.jj.clipper.transaction.TransactionMultiLineParser
+import com.jj.clipper.transaction.TransactionMultiLineParserImpl
 import com.jj.pdf.PdfToTextService
 import com.jj.pdf.PdfToTextServiceImpl
 import groovy.util.logging.Slf4j
@@ -20,6 +22,7 @@ class ClipperCardParser {
     private final PdfToTextService pdfToTextService = new PdfToTextServiceImpl()
     private final CardNumberLineParser cardNumberLineParser = new CardNumberLineParserImpl()
     private final TransactionLineParser transactionLineParser = new TransactionLineParserImpl()
+    private final TransactionMultiLineParser transactionMultiLineParser = new TransactionMultiLineParserImpl()
     private final ContactInfoLineParser contactInfoLineParser = new ContactInfoLineParserImpl()
 
     void parsePdfFile(final File pdfFile) {
@@ -28,37 +31,24 @@ class ClipperCardParser {
         final ClipperCardParserContext context = new ClipperCardParserContext()
 
         pdfText.eachLine { final String line ->
+            log.debug "line = $line"
+
+            context.linesSinceLastTransaction.push(line)
+
             if (cardNumberLineParser.isCardNumberLine(line)) {
                 context.cardNumber = cardNumberLineParser.parse(line)
+                context.linesSinceLastTransaction.clear()
             } else if (transactionLineParser.isTransactionLine(line)) {
                 final TransactionLine transactionLine = transactionLineParser.parse(line)
-
-                if (isFirstTransactionLine(context.previousBalance)) {
-                    context.previousBalance = transactionLine.balance
-                    context.expectedBalance = transactionLine.balance
-                } else {
-                    context.expectedBalance = context.previousBalance + transactionLine.adjustmentAmount
-                }
-
-                if (transactionLine.balance != context.expectedBalance) {
-                    final BigDecimal discrepancyAmount = context.expectedBalance - transactionLine.balance
-                    context.totalDiscrepancyAmount += discrepancyAmount
-
-                    // TODO Add page number
-
-                    println ''
-                    80.times { print '-' }
-                    println ''
-                    println "INVALID LINE: $line"
-                    println "Balance should be \$${context.expectedBalance}"
-                    println "Off by \$$discrepancyAmount"
-                    80.times { print '-' }
-                    println ''
-                }
-
-                context.previousBalance = transactionLine.balance
+                handleTransactionLine(context, transactionLine, line)
+                context.linesSinceLastTransaction.clear()
+            } else if (transactionMultiLineParser.isTransaction(context.linesSinceLastTransaction as String[])) {
+                final TransactionLine transactionLine = transactionMultiLineParser.parse(context.linesSinceLastTransaction as String[])
+                handleTransactionLine(context, transactionLine, line)
+                context.linesSinceLastTransaction.clear()
             } else if (contactInfoLineParser.isContactInfoLine(line)) {
                 context.customerServicePhoneNumber = contactInfoLineParser.parse(line)
+                context.linesSinceLastTransaction.clear()
             }
         }
 
@@ -74,6 +64,34 @@ class ClipperCardParser {
             80.times { print '=' }
             println ''
         }
+    }
+
+    private static void handleTransactionLine(final ClipperCardParserContext context, final TransactionLine transactionLine, final String... lines) {
+        if (isFirstTransactionLine(context.previousBalance)) {
+            context.previousBalance = transactionLine.balance
+            context.expectedBalance = transactionLine.balance
+        } else {
+            context.expectedBalance = context.previousBalance + transactionLine.adjustmentAmount
+        }
+
+        if (transactionLine.balance != context.expectedBalance) {
+            final BigDecimal discrepancyAmount = context.expectedBalance - transactionLine.balance
+            context.totalDiscrepancyAmount += discrepancyAmount
+
+            // TODO Add page number
+
+            println ''
+            80.times { print '-' }
+            println ''
+            println 'INVALID LINES:'
+            println lines
+            println "Balance should be \$${context.expectedBalance}"
+            println "Off by \$$discrepancyAmount"
+            80.times { print '-' }
+            println ''
+        }
+
+        context.previousBalance = transactionLine.balance
     }
 
     private static boolean isFirstTransactionLine(final BigDecimal previousBalance) {
