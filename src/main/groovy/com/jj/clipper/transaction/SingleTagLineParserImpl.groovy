@@ -16,11 +16,23 @@ package com.jj.clipper.transaction
 class SingleTagLineParserImpl implements TransactionLineParser {
 
     boolean isTransactionLine(final String line) {
-        return false
+        return line ==~ /^Single-tag fare payment .+ Clipper Cash/
     }
 
     TransactionLine parse(final String line) {
-        return null
+        assert isTransactionLine(line)
+
+        return new TransactionLine(
+                balance: getBalance(line),
+                adjustmentAmount: getAdjustmentAmount(line)
+        )
     }
 
+    private static BigDecimal getBalance(final String line) {
+        null
+    }
+
+    private static BigDecimal getAdjustmentAmount(final String line) {
+        null
+    }
 }

@@ -24,7 +24,6 @@ class TransactionMultiLineParserImpl implements TransactionMultiLineParser {
     }
 
     TransactionLine parse(final String... lines) {
-        println "***************** TransactionMultiLineParserImpl"
         final boolean isDebit = isDebit(lines)
         final boolean isCredit = isCredit(lines)
 
