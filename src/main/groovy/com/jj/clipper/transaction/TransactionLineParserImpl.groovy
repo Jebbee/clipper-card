@@ -39,28 +39,19 @@ class TransactionLineParserImpl implements TransactionLineParser {
     TransactionLine parse(final String line) {
         assert isTransactionLine(line)
 
-        final TransactionLine transactionLine = new TransactionLine()
-        transactionLine.balance = getBalance(line)
-        transactionLine.adjustmentAmount = getAdjustmentAmountWithProperSign(line)
+        final boolean isDebit = isDebit(line)
 
-        return transactionLine
+        return new TransactionLine(
+                balance: getBalance(line),
+                adjustmentAmount: getAdjustmentAmount(line, isDebit)
+        )
     }
 
     private static BigDecimal getBalance(final String line) {
         return (line =~ /\d+\.\d{2}$/)[0] as BigDecimal
     }
 
-    private static BigDecimal getAdjustmentAmountWithProperSign(String line) {
-        BigDecimal adjustmentAmount = getAdjustmentAmount(line)
-
-        if (isDebitLine(line)) {
-            adjustmentAmount = adjustmentAmount.negate()
-        }
-
-        return adjustmentAmount
-    }
-
-    private static BigDecimal getAdjustmentAmount(final String line) {
+    private static BigDecimal getAdjustmentAmount(final String line, final boolean isDebit) {
         // With grouping we get a multidimensional array
         final Matcher matcher = (line =~ /(\d+\.\d{2}) (\d+\.\d{2})$/)
         assert matcher.hasGroup()
@@ -77,10 +68,12 @@ class TransactionLineParserImpl implements TransactionLineParser {
          */
         final List<String> listOfGroups = matcher[0] as List<String>
 
-        return listOfGroups[1] as BigDecimal
+        final BigDecimal adjustmentAmount = listOfGroups[1] as BigDecimal
+
+        return isDebit ? adjustmentAmount.negate() : adjustmentAmount
     }
 
-    private static boolean isDebitLine(final String line) {
+    private static boolean isDebit(final String line) {
         return line ==~ /.+ \(purse debit\) .+/
     }
 

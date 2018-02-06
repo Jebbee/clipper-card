@@ -10,4 +10,7 @@ Used to parse Clipper Card PDF history files, because I have seen discrepancies 
 
 ## TODO
 
+* [ ] Handle negative balance (surrounded by parenthesis)
+* [ ] Handle reload
+* [ ] Handle single tag lines
 * [ ] Consider using Spock http://spockframework.org/spock/docs/1.1/index.html

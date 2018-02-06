@@ -19,26 +19,23 @@ import java.util.regex.Matcher
  */
 class TransactionMultiLineParserImpl implements TransactionMultiLineParser {
 
-    // TODO [now] Handle credits
-
     boolean isTransaction(final String... lines) {
-        return isDebit(lines) //|| isCredit(lines)
+        return isDebit(lines) || isCredit(lines)
     }
 
     TransactionLine parse(final String... lines) {
         println "***************** TransactionMultiLineParserImpl"
-        assert isDebit(lines)
+        final boolean isDebit = isDebit(lines)
+        final boolean isCredit = isCredit(lines)
 
-        final String debitAmountLine = lines[lines.length - 1]
+        assert isDebit || isCredit
 
-        final TransactionLine transactionLine = new TransactionLine()
-        transactionLine.balance = getBalance(debitAmountLine)
-        transactionLine.adjustmentAmount = getAdjustmentAmount(debitAmountLine)
+        final String transactionAmountLine = lines[lines.length - 1]
 
-        // TODO temp
-        transactionLine.adjustmentAmount = transactionLine.adjustmentAmount.negate()
-
-        return transactionLine
+        return new TransactionLine(
+                balance: getBalance(transactionAmountLine),
+                adjustmentAmount: getAdjustmentAmount(transactionAmountLine, isDebit)
+        )
     }
 
     private static boolean isDebit(final String... lines) {
@@ -55,6 +52,10 @@ class TransactionMultiLineParserImpl implements TransactionMultiLineParser {
         return hasDebitAmountLine && hasPurseDebitLine && hasDualTagEntryLine
     }
 
+    private static boolean isCredit(final String... lines) {
+        return lines[0] ==~ /.+ fare adjustment \(purse rebate\) .+/
+    }
+
     private static BigDecimal getBalance(final String line) {
         // With grouping we get a multidimensional array
         final Matcher matcher = (line =~ /\s+(\d+\.\d{2})\s+\d+\.\d{2}\s+\d+\.\d{2} Clipper Cash/)
@@ -67,7 +68,6 @@ class TransactionMultiLineParserImpl implements TransactionMultiLineParser {
          * The first element of the matcher (matcher[0]) is the list of groups.
          * The first element of the list of groups (listOfGroups[0]) is both decimal strings.
          * The second element of the list of groups (listOfGroups[1]) is the first matched group.
-         * The third element of the list of groups (listOfGroups[2]) is the second matched group.
          *
          * For example, matching the string "...Clipper Cash 1.00 38.24" with the above regex, we get:
          * listOfGroups = ["1.00 38.24", "1.00", "38.24"]
@@ -77,9 +77,9 @@ class TransactionMultiLineParserImpl implements TransactionMultiLineParser {
         return listOfGroups[1] as BigDecimal
     }
 
-    private static BigDecimal getAdjustmentAmount(final String line) {
+    private static BigDecimal getAdjustmentAmount(final String line, final boolean isDebit) {
         // With grouping we get a multidimensional array
-        final Matcher matcher = (line =~ /\s+\d+\.\d{2}\s+\d+\.\d{2}\s+(\d+\.\d{2}) Clipper Cash/)
+        final Matcher matcher = (line =~ /\s+\d+\.\d{2}\s+(\d+\.\d{2})\s+(\d+\.\d{2}) Clipper Cash/)
         assert matcher.hasGroup()
         assert 1L == matcher.size()
 
@@ -94,7 +94,9 @@ class TransactionMultiLineParserImpl implements TransactionMultiLineParser {
          */
         final List<String> listOfGroups = matcher[0] as List<String>
 
-        return listOfGroups[1] as BigDecimal
+        final BigDecimal adjustmentAmount = listOfGroups[isDebit ? 2 : 1] as BigDecimal
+
+        return isDebit ? adjustmentAmount.negate() : adjustmentAmount
     }
 
     private static boolean isDebitAmountLine(final String line) {
@@ -107,10 +109,6 @@ class TransactionMultiLineParserImpl implements TransactionMultiLineParser {
 
     private static boolean isDualTagEntryLine(final String line) {
         return line ==~ /Dual-tag entry transaction, maximum fare deducted\s*/
-    }
-
-    private static boolean isCredit(final String... lines) {
-        return lines[0] ==~ /.+ fare adjustment \(purse debit\) .+/
     }
 
 }
