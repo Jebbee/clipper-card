@@ -17,6 +17,12 @@ import java.util.regex.Pattern
  * <pre>
  * Single-tag fare payment Church NONE1/6/17   4:52 pm  204.74  0.00  0.00 Clipper Cash
  * </pre>
+ *
+ * or
+ *
+ * <pre>
+ * Single-tag fare payment SF Ferry (GGF) SF-L5/2/17   1:14 pm  184.04  0.00  7.25 Clipper Cash
+ * </pre>
  */
 class SingleTagLineParserImpl implements TransactionLineParser {
 

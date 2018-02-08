@@ -68,6 +68,8 @@ class ClipperCardParser {
     }
 
     private static void handleTransactionLine(final ClipperCardParserContext context, final TransactionLine transactionLine, final String... lines) {
+        log.debug('')
+
         if (isFirstTransactionLine(context.previousBalance)) {
             context.previousBalance = transactionLine.balance
             context.expectedBalance = transactionLine.balance

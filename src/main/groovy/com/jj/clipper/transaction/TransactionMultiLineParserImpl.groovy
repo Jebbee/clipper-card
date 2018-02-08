@@ -11,10 +11,32 @@ import java.util.regex.Matcher
  * Zone 3 (GGT) 18S11/27/17   7:03 am  58.04  0.00  6.60 Clipper Cash
  * </pre>
  *
+ * or (note balance goes negative);
+ *
+ * <pre>
+ * Dual-tag entry transaction, maximum fare deducted
+ * (purse debit)
+ * Zone 1 (GGT) 18N2/28/17   4:02 pm (8.06) 0.00  10.40 Clipper Cash
+ * </pre>
+ *
  * And for a credit transactions:
  *
  * <pre>
  * Dual-tag exit transaction, fare adjustment (purse rebate) Zone 1 (GGT) 18S11/27/17   7:57 am  59.04  1.00  0.00 Clipper Cash
+ * </pre>
+ *
+ * And for re-loads:
+ *
+ * <pre>
+ * Remote re-load of existing purse GGB #9481/5/17   7:42 am  221.19  125.00  0.00 Clipper Cash
+ * </pre>
+ *
+ * or
+ *
+ * <pre>
+ * Remote re-load of existing purse GOLDEN GATE FERRY SAN
+ * FRANCISCO FERRY PL
+ * 5/2/17   1:14 pm  191.29  150.00  0.00 Clipper Cash
  * </pre>
  *
  * Note that this handles the reports that come from Clipper's customer support.
@@ -24,14 +46,15 @@ import java.util.regex.Matcher
 class TransactionMultiLineParserImpl implements TransactionMultiLineParser {
 
     boolean isTransaction(final String... lines) {
-        return isDebit(lines) || isCredit(lines)
+        return isDebit(lines) || isCredit(lines) || isReload(lines)
     }
 
     TransactionLine parse(final String... lines) {
         final boolean isDebit = isDebit(lines)
         final boolean isCredit = isCredit(lines)
+        final boolean isReload = isReload(lines)
 
-        assert isDebit || isCredit
+        assert isDebit || isCredit || isReload
 
         final String transactionAmountLine = lines[lines.length - 1]
 
@@ -56,12 +79,16 @@ class TransactionMultiLineParserImpl implements TransactionMultiLineParser {
     }
 
     private static boolean isCredit(final String... lines) {
-        return lines[0] ==~ /.+ fare adjustment \(purse rebate\) .+/
+        return lines[lines.length - 1] ==~ /.+ fare adjustment \(purse rebate\) .+/
+    }
+
+    private static boolean isReload(final String... lines) {
+        return lines[lines.length - 1] ==~ /^Remote re-load of existing purse.*/
     }
 
     private static BigDecimal getBalance(final String line) {
         // With grouping we get a multidimensional array
-        final Matcher matcher = (line =~ /\s+(\d+\.\d{2})\s+\d+\.\d{2}\s+\d+\.\d{2} Clipper Cash/)
+        final Matcher matcher = (line =~ /\s+(\(?)(\d+\.\d{2})(\)?)\s+\d+\.\d{2}\s+\d+\.\d{2} Clipper Cash/)
         assert matcher.hasGroup()
         assert 1L == matcher.size()
 
@@ -77,12 +104,15 @@ class TransactionMultiLineParserImpl implements TransactionMultiLineParser {
          */
         final List<String> listOfGroups = matcher[0] as List<String>
 
-        return listOfGroups[1] as BigDecimal
+        final boolean isNegative = (listOfGroups[1] == '(') && (listOfGroups[3] == ')')
+        final BigDecimal balance = listOfGroups[2] as BigDecimal
+
+        return isNegative ? balance.negate() : balance
     }
 
     private static BigDecimal getAdjustmentAmount(final String line, final boolean isDebit) {
         // With grouping we get a multidimensional array
-        final Matcher matcher = (line =~ /\s+\d+\.\d{2}\s+(\d+\.\d{2})\s+(\d+\.\d{2}) Clipper Cash/)
+        final Matcher matcher = (line =~ /\s+\(?\d+\.\d{2}\)?\s+(\d+\.\d{2})\s+(\d+\.\d{2}) Clipper Cash/)
         assert matcher.hasGroup()
         assert 1L == matcher.size()
 
@@ -103,7 +133,7 @@ class TransactionMultiLineParserImpl implements TransactionMultiLineParser {
     }
 
     private static boolean isDebitAmountLine(final String line) {
-        return line ==~ /Zone \d+ \(.+\) \d+[NSEW]\d{1,2}\/\d{1,2}\/\d{2}\s+\d{1,2}:\d{2} (a|p)m\s+\d+\.\d{2}\s+\d+\.\d{2}\s+\d+\.\d{2} Clipper Cash/
+        return line ==~ /Zone \d+ \(.+\) \d+[NSEW]\d{1,2}\/\d{1,2}\/\d{2}\s+\d{1,2}:\d{2} (a|p)m\s+\(?\d+\.\d{2}\)?\s+\d+\.\d{2}\s+\d+\.\d{2} Clipper Cash/
     }
 
     private static boolean isPurseDebitLine(final String line) {
