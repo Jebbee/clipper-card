@@ -16,6 +16,10 @@ import java.util.regex.Matcher
  * <pre>
  * Dual-tag exit transaction, fare adjustment (purse rebate) Zone 1 (GGT) 18S11/27/17   7:57 am  59.04  1.00  0.00 Clipper Cash
  * </pre>
+ *
+ * Note that this handles the reports that come from Clipper's customer support.
+ * The text parsed by PDFBox for these reports looks a lot different than the text in the PDF files,
+ * with text out of order and text mashed together.
  */
 class TransactionMultiLineParserImpl implements TransactionMultiLineParser {
 

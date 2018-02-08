@@ -1,6 +1,7 @@
 package com.jj.clipper.transaction
 
-import java.util.regex.Matcher
+import com.jj.regex.RegexTextExtractor
+import com.jj.regex.RegexTextExtractorImpl
 
 /**
  * Parses lines that appear as follows for debit transactions:
@@ -14,8 +15,19 @@ import java.util.regex.Matcher
  * <pre>
  * 11/27/2017 07:57 AM Dual-tag exit transaction, fare adjustment (purse rebate) Zone 1 (GGT) 18S Clipper Cash 1.00 59.04
  * </pre>
+ *
+ * And for re-load:
+ * <pre>
+ * 12/14/2017 04:03 PM Remote re-load of existing purse GGB #972 Clipper Cash 125.00 132.84
+ * </pre>
+ *
+ * Note that this handles the standard, downloadable reports.
+ * The text parsed by PDFBox for these reports looks a lot like the text in the PDF files, just with some whitespace removed.
  */
 class TransactionLineParserImpl implements TransactionLineParser {
+
+    // TODO [high] Spring inject dependency
+    private final RegexTextExtractor regexTextExtractor = new RegexTextExtractorImpl()
 
     boolean isTransactionLine(final String line) {
         // Date (MM/dd/yyyy)
@@ -47,30 +59,15 @@ class TransactionLineParserImpl implements TransactionLineParser {
         )
     }
 
-    private static BigDecimal getBalance(final String line) {
-        return (line =~ /\d+\.\d{2}$/)[0] as BigDecimal
-    }
-
-    private static BigDecimal getAdjustmentAmount(final String line, final boolean isDebit) {
-        // With grouping we get a multidimensional array
-        final Matcher matcher = (line =~ /(\d+\.\d{2}) (\d+\.\d{2})$/)
-        assert matcher.hasGroup()
-        assert 1L == matcher.size()
-
-        /*
-         * The first element of the matcher (matcher[0]) is the list of groups.
-         * The first element of the list of groups (listOfGroups[0]) is both decimal strings.
-         * The second element of the list of groups (listOfGroups[1]) is the first matched group.
-         * The third element of the list of groups (listOfGroups[2]) is the second matched group.
-         *
-         * For example, matching the string "...Clipper Cash 1.00 38.24" with the above regex, we get:
-         * listOfGroups = ["1.00 38.24", "1.00", "38.24"]
-         */
-        final List<String> listOfGroups = matcher[0] as List<String>
-
+    private BigDecimal getAdjustmentAmount(final String line, final boolean isDebit) {
+        final List<String> listOfGroups = regexTextExtractor.extractGroups(line, ~/(\d+\.\d{2}) (\d+\.\d{2})$/, 2)
         final BigDecimal adjustmentAmount = listOfGroups[1] as BigDecimal
 
         return isDebit ? adjustmentAmount.negate() : adjustmentAmount
+    }
+
+    private static BigDecimal getBalance(final String line) {
+        return (line =~ /\d+\.\d{2}$/)[0] as BigDecimal
     }
 
     private static boolean isDebit(final String line) {

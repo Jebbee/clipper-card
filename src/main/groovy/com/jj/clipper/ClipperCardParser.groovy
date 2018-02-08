@@ -4,11 +4,7 @@ import com.jj.clipper.card.CardNumberLineParser
 import com.jj.clipper.card.CardNumberLineParserImpl
 import com.jj.clipper.contact.ContactInfoLineParser
 import com.jj.clipper.contact.ContactInfoLineParserImpl
-import com.jj.clipper.transaction.TransactionLine
-import com.jj.clipper.transaction.TransactionLineParser
-import com.jj.clipper.transaction.TransactionLineParserImpl
-import com.jj.clipper.transaction.TransactionMultiLineParser
-import com.jj.clipper.transaction.TransactionMultiLineParserImpl
+import com.jj.clipper.transaction.*
 import com.jj.pdf.PdfToTextService
 import com.jj.pdf.PdfToTextServiceImpl
 import groovy.util.logging.Slf4j
@@ -21,6 +17,7 @@ class ClipperCardParser {
     // TODO Spring inject delegate services
     private final PdfToTextService pdfToTextService = new PdfToTextServiceImpl()
     private final CardNumberLineParser cardNumberLineParser = new CardNumberLineParserImpl()
+    private final TransactionLineParser singleTagLineParser = new SingleTagLineParserImpl()
     private final TransactionLineParser transactionLineParser = new TransactionLineParserImpl()
     private final TransactionMultiLineParser transactionMultiLineParser = new TransactionMultiLineParserImpl()
     private final ContactInfoLineParser contactInfoLineParser = new ContactInfoLineParserImpl()
@@ -37,6 +34,10 @@ class ClipperCardParser {
 
             if (cardNumberLineParser.isCardNumberLine(line)) {
                 context.cardNumber = cardNumberLineParser.parse(line)
+                context.linesSinceLastTransaction.clear()
+            } else if (singleTagLineParser.isTransactionLine(line)) {
+                final TransactionLine transactionLine = singleTagLineParser.parse(line)
+                handleTransactionLine(context, transactionLine, line)
                 context.linesSinceLastTransaction.clear()
             } else if (transactionLineParser.isTransactionLine(line)) {
                 final TransactionLine transactionLine = transactionLineParser.parse(line)
