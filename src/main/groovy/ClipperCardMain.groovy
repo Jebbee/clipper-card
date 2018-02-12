@@ -4,6 +4,7 @@ final CliBuilder cli = new CliBuilder(usage: "ClipperCard.groovy -file <pdf>")
 cli.with {
     h longOpt: 'help', 'Show usage'
     f longOpt: 'file', args: 1, argName: 'pdf', 'Clipper transaction history PDF file; Defaults to "~/Downloads/ridehistory.pdf"'
+    l longOpt: 'limit', args: 1, argName: 'discrepancyAmountLimit', 'Ignore discrepancies whose absolute deviation is greater than the specified limit; Defaults to 50'
 }
 
 final OptionAccessor options = cli.parse(args)
@@ -18,8 +19,10 @@ if (!options) {
 final File pdfFile = getPdfFile(options)
 ensureCanReadFileElseExit(pdfFile)
 
+final BigDecimal discrepancyAmountLimit = getDiscrepancyAmountLimit(options)
+
 final ClipperCardParser clipperCardParser = new ClipperCardParser()
-clipperCardParser.parsePdfFile(pdfFile)
+clipperCardParser.parsePdfFile(pdfFile, discrepancyAmountLimit)
 
 private static File getPdfFile(final OptionAccessor options) {
     if (options.file) {
@@ -35,4 +38,8 @@ private static void ensureCanReadFileElseExit(final File file) {
         System.err.println "File '${file.canonicalPath}' does not exist or is not readable"
         System.exit(1)
     }
+}
+
+private static BigDecimal getDiscrepancyAmountLimit(final OptionAccessor options) {
+    return (options.limit ?: 50) as BigDecimal
 }

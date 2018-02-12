@@ -30,48 +30,31 @@ class TransactionLineParserImpl implements TransactionLineParser {
     private final RegexTextExtractor regexTextExtractor = new RegexTextExtractorImpl()
 
     boolean isTransactionLine(final String line) {
-        // Date (MM/dd/yyyy)
-        // Time (HH:mm)
-        // "AM" or "PM"
-        // Space
-        // One or more characters
-        // Space
-        // Either:
-        //    "(purse debit)" or "(purse rebate)"
-        //    or
-        //    "re-load of existing purse"
-        // One or more characters
-        // Space
-        // One or more digits + dot + two digits
-        // Space
-        // One or more digits + dot + two digits
-        return line ==~ /\d{2}\/\d{2}\/\d{4} \d{2}:\d{2} (A|P)M .+ (\(purse (debit|rebate)\)|re-load of existing purse).+ \d+\.\d{2} \d+\.\d{2}/
+        return line ==~ /.* Clipper Cash \d+\.\d{2} \d+\.\d{2}$/
     }
 
     TransactionLine parse(final String line) {
         assert isTransactionLine(line)
 
-        final boolean isDebit = isDebit(line)
-
         return new TransactionLine(
                 balance: getBalance(line),
-                adjustmentAmount: getAdjustmentAmount(line, isDebit)
+                adjustmentAmount: getAdjustmentAmount(line)
         )
     }
 
-    private BigDecimal getAdjustmentAmount(final String line, final boolean isDebit) {
-        final List<String> listOfGroups = regexTextExtractor.extractGroups(line, ~/(\d+\.\d{2}) (\d+\.\d{2})$/, 2)
+    private BigDecimal getAdjustmentAmount(final String line) {
+        final List<String> listOfGroups = regexTextExtractor.extractGroups(line, ~/Clipper Cash (\d+\.\d{2}) (\d+\.\d{2})$/, 2)
         final BigDecimal adjustmentAmount = listOfGroups[1] as BigDecimal
 
-        return isDebit ? adjustmentAmount.negate() : adjustmentAmount
-    }
-
-    private static BigDecimal getBalance(final String line) {
-        return (line =~ /\d+\.\d{2}$/)[0] as BigDecimal
+        return isDebit(line) ? adjustmentAmount.negate() : adjustmentAmount
     }
 
     private static boolean isDebit(final String line) {
         return line ==~ /.+ \(purse debit\) .+/
+    }
+
+    private static BigDecimal getBalance(final String line) {
+        return (line =~ /\d+\.\d{2}$/)[0] as BigDecimal
     }
 
 }

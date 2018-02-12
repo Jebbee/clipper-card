@@ -1,7 +1,5 @@
 package com.jj.clipper
 
-import static java.math.BigDecimal.ZERO
-
 class ClipperCardParserContext {
 
     /**
@@ -13,6 +11,5 @@ class ClipperCardParserContext {
     String customerServicePhoneNumber
     BigDecimal previousBalance
     BigDecimal expectedBalance
-    BigDecimal totalDiscrepancyAmount = ZERO
-
+    List<BigDecimal> discrepancyAmounts = []
 }
