@@ -32,21 +32,16 @@ class ClipperCardParser {
         pdfText.eachLine { final String line ->
             log.debug "line = $line"
 
-            context.linesSinceLastTransaction.push(line)
-
             if (cardNumberLineParser.isCardNumberLine(line)) {
                 context.cardNumber = cardNumberLineParser.parse(line)
             } else if (transactionLineParser.isTransactionLine(line)) {
                 final TransactionLine transactionLine = transactionLineParser.parse(line)
                 handleTransactionLine(context, transactionLine, line, discrepancyAmountLimit)
-                context.linesSinceLastTransaction.clear()
             } else if (alternateTransactionLineParser.isTransactionLine(line)) {
                 final TransactionLine transactionLine = alternateTransactionLineParser.parse(line)
                 handleTransactionLine(context, transactionLine, line, discrepancyAmountLimit)
-                context.linesSinceLastTransaction.clear()
             } else if (contactInfoLineParser.isContactInfoLine(line)) {
                 context.customerServicePhoneNumber = contactInfoLineParser.parse(line)
-                context.linesSinceLastTransaction.clear()
             }
         }
 
@@ -63,6 +58,8 @@ class ClipperCardParser {
             println "Card Number: ${context.cardNumber}"
             80.times { print '=' }
             println ''
+            println ''
+            log.debug 'Discrepancy amounts:'
             context.discrepancyAmounts.each {
                 log.debug "$it"
             }
@@ -97,6 +94,7 @@ class ClipperCardParser {
                 println 'INVALID LINE:'
                 println line
                 println "Balance should be \$${context.expectedBalance}"
+                println "Previous balance was \$${context.previousBalance}"
                 println "Off by \$$discrepancyAmount"
                 80.times { print '-' }
                 println ''
